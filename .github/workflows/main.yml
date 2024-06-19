@@ -78,3 +78,4 @@ jobs:
           context: ./src
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/app:${{ github.sha }}
+
