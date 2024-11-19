@@ -58,9 +58,9 @@ jobs:
           path: .
 
   docker-ci:
-    needs: python-ci
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'main' }}
+    needs: python-ci
     steps:
       - name: Upload python artifacts
         uses: actions/upload-artifact@v4
@@ -75,9 +75,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v5
         with:
-          context: ./src
           push: true
+          context: ./src
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
 
