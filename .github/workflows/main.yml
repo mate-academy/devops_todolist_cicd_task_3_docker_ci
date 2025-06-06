@@ -14,7 +14,7 @@ env:
 
 jobs:
   python-ci:
-    if: github.ref_name == main
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -61,7 +61,7 @@ jobs:
   docker-ci:
     name: Login,Build and Push Image
     needs: ['python-ci']
-    if: github.ref_name == main
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
 
 
