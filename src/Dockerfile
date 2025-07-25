@@ -15,7 +15,8 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=builder /app .
 
-RUN pip install --upgrade pip && \
+RUN ls -la /app && \
+    pip install --upgrade pip && \
     pip install -r requirements.txt
 
 EXPOSE 8080
