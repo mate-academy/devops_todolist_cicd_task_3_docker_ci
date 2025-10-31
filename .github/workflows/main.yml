@@ -1,56 +1,95 @@
-name: python-deployment
-
-run-name: ${{ github.actor }} - ${{ github.ref_name}} -${{ github.sha }}
+name: "Python CI/CD"
+run-name: "CI/CD by ${{ github.actor }} @ ${{ github.sha }}"
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main, develop ]
   pull_request:
-    branches: ["main"]
+    branches: [ main ]
 
 env:
-  PythonVersion: 3.8
+  
+  PY_VERSION: "3.11"
+ 
+  IMAGE_NAME: "vitalysemeniv/todoapp"
+
+
+defaults:
+  run:
+    working-directory: src
 
 jobs:
   python-ci:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./src
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ env.PythonVersion }}
-        uses: actions/setup-python@v4
+      - name: Set up Python ${{ env.PY_VERSION }}
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PythonVersion }}
+          python-version: ${{ env.PY_VERSION }}
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install coverage flake8
           pip install -r requirements.txt
+          pip install coverage flake8
 
-      - name: Run tests
+   
+      - name: Run tests with coverage (Django)
         run: |
-          python manage.py test
+          coverage run manage.py test
+          coverage xml -o coverage.xml
 
-      - name: Generate Report
-        run: |
-          coverage run --source='.' manage.py test
-          coverage report
+      
+      - name: Show coverage report
+        run: coverage report -m
 
-      - name: Linting
-        run: |
-          flake8 . --show-source --statistics --exit-zero
+      
+      - name: Flake8 style check (non-blocking)
+        run: flake8 .
+        continue-on-error: true
 
-      - name: Check Complexity
-        run: |
-          flake8 . --exit-zero --max-complexity=6
+     
+      - name: Code complexity check (non-blocking)
+        run: flake8 . --select=C901 --max-complexity=12
+        continue-on-error: true
 
-      - name: Upload python artifacts
+      
+      - name: Upload artifact (source + coverage)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: python-artifacts
-          path: .
+          name: python-source-${{ github.sha }}
+          path: |
+            src/**/*.py
+            src/coverage.xml
+
+  docker-ci:
+  
+    needs: python-ci
+    runs-on: ubuntu-latest
+    
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src
+          file: ./src/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
