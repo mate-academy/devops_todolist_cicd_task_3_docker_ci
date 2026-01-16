@@ -9,7 +9,8 @@ on:
     branches: ["main"]
 
 env:
-  PythonVersion: 3.8
+  PythonVersion: 3.11
+  IMAGE_NAME: eldard/test
 
 jobs:
   python-ci:
@@ -50,7 +51,36 @@ jobs:
           flake8 . --exit-zero --max-complexity=6
 
       - name: Upload python artifacts
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: python-artifacts
           path: .
+
+
+  docker-ci:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: python-ci
+    steps:
+    - uses: actions/download-artifact@v4
+      name: Download python artifacts
+      with:
+        name: python-artifacts
+        path: .
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Dockerfile
+        push: true
+        tags: |
+          ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+
