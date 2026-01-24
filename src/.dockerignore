@@ -1,0 +1,13 @@
+requirements-dev.txt
+.env
+.git
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+*.sqlite3
+.dockerignore
+Dockerfile
