@@ -1,56 +1,80 @@
-name: python-deployment
+name: Django CI
 
-run-name: ${{ github.actor }} - ${{ github.ref_name}} -${{ github.sha }}
+run-name: Run by ${{ github.actor }} on commit ${{ github.sha }}
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: ["main"]
+    branches:
+      - main
 
 env:
-  PythonVersion: 3.8
+  PYTHON_VERSION: '3.10'
 
 jobs:
   python-ci:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./src
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ env.PythonVersion }}
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PythonVersion }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install coverage flake8
           pip install -r requirements.txt
+          pip install coverage flake8
 
-      - name: Run tests
-        run: |
-          python manage.py test
+      - name: Run Tests and Generate Coverage
+        run: coverage run manage.py test
 
-      - name: Generate Report
-        run: |
-          coverage run --source='.' manage.py test
-          coverage report
+      - name: Display Coverage Report
+        run: coverage report
 
-      - name: Linting
-        run: |
-          flake8 . --show-source --statistics --exit-zero
+      - name: Check Code Style (Flake8)
+        continue-on-error: true
+        run: flake8 .
 
-      - name: Check Complexity
-        run: |
-          flake8 . --exit-zero --max-complexity=6
+      - name: Check Code Complexity
+        continue-on-error: true
+        run: flake8 . --max-complexity=10 --exit-zero
 
-      - name: Upload python artifacts
+      - name: Upload Python Code Artifact
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: python-artifacts
-          path: .
+          name: python-source-code
+          path: "**/*.py"
+
+  docker-ci:
+    runs-on: ubuntu-latest
+    needs: python-ci
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/django-todo:${{ github.sha }}
