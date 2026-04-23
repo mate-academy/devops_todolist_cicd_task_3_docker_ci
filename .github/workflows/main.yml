@@ -1,6 +1,6 @@
 name: python-deployment
 
-run-name: ${{ github.actor }} - ${{ github.ref_name}} -${{ github.sha }}
+run-name: ${{ github.actor }} - ${{ github.ref_name }} - ${{ github.sha }}
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
 
 env:
   PythonVersion: 3.8
+  DOCKER_IMAGE_NAME: kube2py
 
 jobs:
   python-ci:
@@ -50,7 +51,42 @@ jobs:
           flake8 . --exit-zero --max-complexity=6
 
       - name: Upload python artifacts
+        # ТРЕБОВАНИЕ: Загрузка артефакта только из ветки main
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: python-artifacts
-          path: .
+          path: ./src
+
+  docker-ci:
+    # ТРЕБОВАНИЕ: Название задания docker-ci
+    name: Docker CI
+    needs: [python-ci]
+    # ТРЕБОВАНИЕ: Выполнение только из ветки main
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download python artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-artifacts
+          path: ./src
+
+      - name: Login to DockerHub
+        # ТРЕБОВАНИЕ: Использование секретов репозитория
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          # ТРЕБОВАНИЕ: Использовать предоставленный Dockerfile (контекст src)
+          context: ./src
+          push: true
+          # ТРЕБОВАНИЕ: Тег с хешем текущего коммита
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
