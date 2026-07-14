@@ -9,7 +9,7 @@ on:
     branches: ["main"]
 
 env:
-  PythonVersion: 3.10
+  PythonVersion: "3.13"
   PYTHON_APP_NAME: "todolist"
 
 jobs:
