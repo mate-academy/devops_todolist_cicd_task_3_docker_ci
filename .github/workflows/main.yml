@@ -50,7 +50,37 @@ jobs:
           flake8 . --exit-zero --max-complexity=6
 
       - name: Upload python artifacts
+        if: github.ref_name == 'main'
         uses: actions/upload-artifact@v4
         with:
           name: python-artifacts
           path: .
+
+
+  docker-ci:
+    name: Docker-CI
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Commit hash
+        run: "echo 'Current ommit hash is : ${{ github.sha }}'"
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: src/Dockerfile
+          push:
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/app:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/app:latest
