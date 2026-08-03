@@ -58,7 +58,7 @@ jobs:
           name: python-artifacts
           path: .
 
-  build-image:
+  docker-ci:
     name: Build Image
     needs: python-ci
     if: github.ref.name == 'main'
@@ -77,5 +77,6 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: ./src
+        file: ./Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{env.DockerImageName}}:${{github.sha}}
