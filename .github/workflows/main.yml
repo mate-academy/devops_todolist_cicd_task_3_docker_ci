@@ -78,4 +78,4 @@ jobs:
         with:
           context: ./src
           push: true
-          tags: ${{ secrets.GITHUB_USERNAME }}/${{ env.DockerImageName }}:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:latest
