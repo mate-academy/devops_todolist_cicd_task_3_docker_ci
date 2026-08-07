@@ -73,9 +73,11 @@ jobs:
           name: python-artifacts
           path: .
 
-      - name: Build and push a Docker image
+      - name: Build and push a Docker images
         uses: docker/build-push-action@v5
         with:
           context: ./src
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:latest
