@@ -17,7 +17,7 @@ env:
 jobs:
   python-ci:
     name: python-ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
