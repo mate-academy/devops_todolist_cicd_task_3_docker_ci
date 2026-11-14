@@ -65,7 +65,7 @@ jobs:
           ./src/**/*.py
 
   build-image:
-    name: Build and Push
+    name: Docker CI
     needs: python-ci
     if: github.ref_name == 'main'
     runs on: ubuntu-latest
